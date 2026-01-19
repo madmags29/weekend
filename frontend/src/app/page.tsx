@@ -7,11 +7,19 @@ import { TripTimeline } from "@/components/TripTimeline";
 import { motion, AnimatePresence } from "framer-motion";
 
 // Types matching Backend API
+import { useGeolocation } from "@/hooks/useGeolocation";
+
 interface SearchResult {
   id: number;
   name: string;
   description: string;
   tags: string[];
+  distance?: string;
+  drive_time?: string;
+  estimated_cost?: string;
+  best_time_visit?: string;
+  famous_for?: string;
+  ideal_for?: string;
 }
 
 interface Itinerary {
@@ -31,14 +39,22 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [view, setView] = useState<"search" | "results" | "plan">("search");
 
+  // Get User Location
+  const { coords } = useGeolocation();
+
   // ... (handlers remain the same) ...
   const handleSearch = async (query: string) => {
     setLoading(true);
     try {
+      const payload = {
+        query,
+        user_location: coords ? `${coords.latitude},${coords.longitude}` : undefined
+      };
+
       const res = await fetch("http://localhost:8000/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       setSearchResults(data.results || []);

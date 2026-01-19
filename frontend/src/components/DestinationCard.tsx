@@ -9,10 +9,18 @@ interface DestinationCardProps {
     name: string;
     description: string;
     tags: string[];
+    distance?: string;
+    drive_time?: string;
+    estimated_cost?: string;
+    best_time_visit?: string;
     onPlanTrip: (id: number, name: string) => void;
 }
 
-export function DestinationCard({ id, name, description, tags, onPlanTrip }: DestinationCardProps) {
+export function DestinationCard({
+    id, name, description, tags,
+    distance, drive_time, estimated_cost, best_time_visit,
+    onPlanTrip
+}: DestinationCardProps) {
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -28,6 +36,30 @@ export function DestinationCard({ id, name, description, tags, onPlanTrip }: Des
             </div>
 
             <p className="text-slate-300 mb-6 flex-grow">{description}</p>
+
+            {/* Quick Stats Grid */}
+            <div className="grid grid-cols-2 gap-3 mb-6 text-sm text-slate-300">
+                {distance && (
+                    <div className="flex items-center gap-2">
+                        <span className="text-accent">📏</span> {distance}
+                    </div>
+                )}
+                {drive_time && (
+                    <div className="flex items-center gap-2">
+                        <span className="text-accent">🚗</span> {drive_time}
+                    </div>
+                )}
+                {estimated_cost && (
+                    <div className="flex items-center gap-2">
+                        <span className="text-accent">💰</span> {estimated_cost}
+                    </div>
+                )}
+                {best_time_visit && (
+                    <div className="flex items-center gap-2">
+                        <span className="text-accent">🗓️</span> {best_time_visit}
+                    </div>
+                )}
+            </div>
 
             <div className="flex flex-wrap gap-2 mb-6">
                 {tags.map((tag) => (
