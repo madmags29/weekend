@@ -1,8 +1,14 @@
 {
     "rewrites": [
         {
-            "source": "/api/:path*",
-            "destination": "/api/:path*"
+            "source": "/api/(.*)",
+            "destination": "/backend/main.py"
         }
-    ]
+    ],
+    "functions": {
+        "backend/main.py": {
+            "maxDuration": 10,
+            "includeFiles": "backend/**"
+        }
+    }
 }
