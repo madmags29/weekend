@@ -59,7 +59,7 @@ export function VideoBackground() {
                     animate={{ opacity: 1 }}
                     className="absolute bottom-4 right-4 z-20 text-xs text-white/50 bg-black/20 backdrop-blur-sm px-2 py-1 rounded border border-white/10"
                 >
-                    Video by <a href={video.user.url} target="_blank" rel="noreferrer" className="hover:text-white underline">{video.user.name}</a> via <a href={video.url} target="_blank" rel="noreferrer" className="hover:text-white underline">Pexels</a>
+                    Video by <a href={video.user.url} target="_blank" rel="noreferrer" className="hover:text-white underline">{video.user.name}</a> via <a href={video.url} target="_blank" rel="noreferrer" className="hover:text-white underline">Pixabay</a>
                 </motion.div>
             )}
         </div>
