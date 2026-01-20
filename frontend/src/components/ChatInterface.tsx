@@ -8,6 +8,7 @@ interface ChatInterfaceProps {
     destination: string;
     itineraryData: any;
     onBack: () => void;
+    onToggleMap?: () => void;
 }
 
 interface Message {
