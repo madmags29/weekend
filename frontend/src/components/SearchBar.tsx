@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Search, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -16,23 +16,48 @@ export function SearchBar({ onSearch, isLoading = false }: SearchBarProps) {
     const [showSuggestions, setShowSuggestions] = useState(false);
 
     useEffect(() => {
-        const fetchSuggestions = async () => {
+        const performSearch = async () => {
+            if (query.length === 0) {
+                // Fetch default/random suggestions or just top list
+                try {
+                    const res = await fetch(`/api/suggestions?q=`); // Empty query returns all/top
+                    const data = await res.json();
+                    setSuggestions(data.suggestions || []);
+                } catch (err) { console.error(err); }
+                return;
+            }
             if (query.length < 2) {
                 setSuggestions([]);
                 return;
             }
+
+            // Fetch suggestions
             try {
-                const res = await fetch(`http://localhost:8000/suggestions?q=${query}`);
+                const res = await fetch(`/api/suggestions?q=${query}`);
                 const data = await res.json();
                 setSuggestions(data.suggestions || []);
             } catch (err) {
                 console.error("Failed to fetch suggestions", err);
             }
+
+            // REMOVED: Do not trigger main search automatically anymore
         };
 
-        const timeoutId = setTimeout(fetchSuggestions, 300); // Debounce
+        const timeoutId = setTimeout(performSearch, 300); // Debounce
         return () => clearTimeout(timeoutId);
     }, [query]);
+
+    // Handle click outside to close suggestions
+    const containerRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+                setShowSuggestions(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -49,16 +74,20 @@ export function SearchBar({ onSearch, isLoading = false }: SearchBarProps) {
     };
 
     return (
-        <div className="w-full max-w-2xl relative group z-50">
+        <div ref={containerRef} className="w-full max-w-2xl relative group z-50">
             <form onSubmit={handleSubmit} className="relative">
                 <div className="absolute inset-0 bg-gradient-to-r from-primary/50 to-secondary/50 rounded-full blur-xl opacity-30 group-hover:opacity-50 transition-opacity duration-500" />
                 <div className="relative flex items-center bg-white/10 backdrop-blur-md border border-white/20 rounded-full p-2 shadow-2xl transition-all duration-300 focus-within:bg-white/15 focus-within:border-white/30">
                     <input
                         type="text"
                         value={query}
+                        onFocus={() => setShowSuggestions(true)}
                         onChange={(e) => {
                             setQuery(e.target.value);
                             setShowSuggestions(true);
+                            if (e.target.value === "") {
+                                onSearch("");
+                            }
                         }}
                         placeholder="Search matching destinations..."
                         className="flex-1 bg-transparent border-none outline-none text-white placeholder-white/50 px-6 py-3 text-lg font-medium"

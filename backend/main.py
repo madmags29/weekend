@@ -34,64 +34,77 @@ class SearchQuery(BaseModel):
 
 class PlanRequest(BaseModel):
     destination: str
+    user_query: Optional[str] = None
+from destinations_data import INDIAN_DESTINATIONS
+import random
 
 @app.post("/search")
 async def search_destinations(query: SearchQuery):
     """
-    Uses OpenAI GPT-4o to find destinations based on natural language query 
-    and returns detailed estimates (Cost, Distance, Time).
+    Hybrid Search:
+    1. Filter local database for matches.
+    2. If matches found, ask AI to enrich them.
+    3. If no matches, ask AI to suggest.
     """
+    
+    # 1. Local Search
+    q_lower = query.query.lower()
+    local_matches = [d for d in INDIAN_DESTINATIONS if q_lower in d.lower()]
+    
+    # Limit to top 3 matches to keep it focused
+    top_matches = local_matches[:3] if local_matches else []
+    
     if not client:
-        # Fallback to mock if no key
-        return {
-            "results": [
-                {
-                    "id": 1, 
-                    "name": "Munnar", 
-                    "description": "Lush green tea gardens and hills.", 
-                    "tags": ["Hills", "Romantic"],
-                    "distance": "130 km",
-                    "drive_time": "4 hrs",
-                    "best_time_drive": "Early Morning",
-                    "best_time_visit": "Sep - Mar",
-                    "estimated_cost": "₹6,000",
-                    "famous_for": "Tea Gardens",
-                    "ideal_for": "Couples"
-                }
-            ]
-        }
+        # Fallback if no API key
+        results = []
+        source_list = top_matches if top_matches else ["Munnar", "Goa", "Jaipur"]
+        for i, name in enumerate(source_list):
+            results.append({
+                "id": i + 1,
+                "name": name,
+                "description": f"Beautiful destination matching '{query.query}'",
+                "tags": ["Travel", "Weekend"],
+                "distance": "Calculate from Location",
+                "drive_time": "5-6 hrs",
+                "best_time_drive": "Morning",
+                "best_time_visit": "All Year",
+                "estimated_cost": "₹5,000 - ₹10,000",
+                "famous_for": "Sightseeing",
+                "ideal_for": "Everyone"
+            })
+        return {"results": results}
 
     try:
-        user_context = f"The user is located at {query.user_location}." if query.user_location else "The user's location is unknown, assume major nearby transport hub."
+        user_context = f"The user is located at {query.user_location}." if query.user_location else "The user's location is unknown."
         
-        # Custom prompt engineering to prioritize nearest destinations
-        proximity_instruction = ""
-        if query.user_location:
-            proximity_instruction = "CRITICAL: The user has provided their location. You MUST prioritize destinations that are closest to this location (ideally within 300-500km or a convenient overnight drive/flight). Do NOT suggest far-off places unless explicitly asked."
+        # Construct prompt based on whether we found local matches
+        if top_matches:
+            focus_instruction = f"The user search matched these specific Indian cities/towns: {', '.join(top_matches)}. YOU MUST GENERATE DETAILS FOR THESE SPECIFIC PLACES ONLY."
+        else:
+            focus_instruction = f"The user search '{query.query}' did not match popular list. Suggest 3-4 best relevant destinations."
 
         system_prompt = """
-        You are an expert travel assistant for India.
-        You suggest best weekend travel destinations based on user queries.
-        You must ensure the following details are accurate:
-        1. **Distance**: Calculate approximate distance from the user's location (if provided) or nearest major city.
-        2. **Estimated Cost**: Provide a realistic cost range per person in INR for a weekend trip (2 days).
-        3. **Best Time**: Be specific about the months (e.g., "Oct - Mar").
+        You are an expert travel assistant.
         
-        Return the response strictly as valid JSON with this structure:
+        CRITICAL INSTRUCTION FOR LOCATION:
+        - Convert 'Lat,Long' to nearest City Name if provided.
+        - Distance should be 'X km from [City]'.
+        
+        Output JSON format strictly:
         {
             "results": [
                 {
                     "id": 1,
-                    "name": "Destination Name",
-                    "description": "Brief catchy description",
+                    "name": "Exact Name",
+                    "description": "Catchy 1-line description",
                     "tags": ["Tag1", "Tag2"],
-                    "distance": "e.g. 250 km from [Your Location]",
-                    "drive_time": "e.g. 5 hrs by Car",
-                    "best_time_drive": "Best time of day to start driving (e.g. 5 AM to beat traffic)",
-                    "best_time_visit": "Best months to visit (e.g. Oct-Mar)",
-                    "estimated_cost": "₹X,XXX - ₹X,XXX per person",
-                    "famous_for": "Key attraction (e.g. Tigers, Tea Gardens)",
-                    "ideal_for": "Target audience (e.g. Couples, Adventure)"
+                    "distance": "...",
+                    "drive_time": "...",
+                    "best_time_drive": "...",
+                    "best_time_visit": "...",
+                    "estimated_cost": "...",
+                    "famous_for": "...",
+                    "ideal_for": "..."
                 }
             ]
         }
@@ -99,10 +112,8 @@ async def search_destinations(query: SearchQuery):
 
         user_prompt = f"""
         {user_context}
-        {proximity_instruction}
-        
-        Suggest 4-5 best weekend travel destinations for the query: "{query.query}".
-        Focus on places reachable or relevant for weekend travel within India.
+        Query: "{query.query}"
+        {focus_instruction}
         """
         
         response = client.chat.completions.create(
@@ -117,51 +128,133 @@ async def search_destinations(query: SearchQuery):
         content = response.choices[0].message.content
         data = json.loads(content)
         
-        # Ensure IDs are present
+        # Ensure IDs are unique
         for idx, item in enumerate(data.get("results", [])):
             item["id"] = idx + 1
             
         return data
 
     except Exception as e:
-        print(f"OpenAI API Error: {e}")
-        # Fallback in case of error
+        print(f"Search API Error: {e}")
         return {"results": [], "error": str(e)}
 
 @app.get("/suggestions")
 async def get_suggestions(q: str):
-    # Simple mock suggestions based on query or random
-    # In a real app, this would query a DB or vector store
-    destinations = ["Munnar", "Ooty", "Coorg", "Goa", "Rishikesh", "Manali", "Jaipur", "Udaipur", "Kerala", "Hampi"]
-    filtered = [d for d in destinations if q.lower() in d.lower()]
-    return {"suggestions": filtered[:5]}
+    if not q:
+        return {"suggestions": []}
+    
+    # Fast local autocomplete
+    q_lower = q.lower()
+    matches = [d for d in INDIAN_DESTINATIONS if q_lower in d.lower()]
+    
+    # Sort by length to give exact matches priority, limit to 5
+    matches.sort(key=len)
+    return {"suggestions": matches[:5]}
 
 @app.post("/plan")
 async def generate_itinerary(request: PlanRequest):
-    # Keep the existing mock or upgrade to AI later
-    return {
-        "destination": request.destination,
-        "itinerary": [
-            {
-                "day": "Saturday",
-                "activities": [
-                    {"time": "09:00 AM", "activity": "Arrival and Check-in"},
-                    {"time": "11:00 AM", "activity": "Local Sightseeing"},
-                    {"time": "01:00 PM", "activity": "Lunch"},
-                    {"time": "04:00 PM", "activity": "Sunset Point"}
-                ]
-            },
-            {
-                "day": "Sunday",
-                "activities": [
-                    {"time": "09:00 AM", "activity": "Breakfast & Adventure Activity"},
-                    {"time": "01:00 PM", "activity": "Lunch"},
-                    {"time": "04:00 PM", "activity": "Return Journey"}
-                ]
-            }
-        ],
-        "estimated_cost": "₹5,000 - ₹8,000 per person"
-    }
+    if not client:
+        return {
+            "destination": request.destination,
+            "itinerary": [
+                {
+                    "day": "Day 1",
+                    "activities": [{"time": "Morning", "activity": "Explore Local Area"}]
+                }
+            ],
+            "estimated_cost": "₹5,000"
+        }
+
+    try:
+        system_prompt = """
+        You are an expert travel planner. 
+        
+        CRITICAL DURATION INSTRUCTION:
+        1. Check the "User's original query" first.
+        2. If it contains number of days (e.g. "3 days", "4 days"), you MUST generate an itinerary for EXACTLY that many days.
+        3. If no duration is mentioned, default to standard 2 Days (Weekend).
+        4. Max duration allowed is 4 Days.
+        
+        Output Structure:
+        - Use "Day 1", "Day 2" etc.
+        - NO markdown formatting.
+        
+        Response strictly as JSON.
+        """
+
+        user_prompt = f"""
+        Plan a trip to {request.destination}.
+        User's original query: "{request.user_query or ''}"
+        
+        Output format:
+        {{
+            "destination": "{request.destination}",
+            "itinerary": [
+                {{
+                    "day": "Day 1",
+                    "activities": [ {{ "time": "...", "activity": "..." }} ]
+                }}
+            ],
+            "estimated_cost": "..."
+        }}
+        """
+
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            response_format={ "type": "json_object" }
+        )
+
+        content = response.choices[0].message.content
+        return json.loads(content)
+
+    except Exception as e:
+        print(f"OpenAI API Error: {e}")
+        return {"destination": request.destination, "itinerary": [], "error": str(e)}
+
+class ChatRequest(BaseModel):
+    message: str
+    destination: str
+    context: Optional[dict] = None
+
+@app.post("/chat")
+async def chat_followup(request: ChatRequest):
+    if not client:
+        return {"response": "I'm offline right now (No API Key), but I'd suggest checking out the local food!"}
+
+    try:
+        system_prompt = f"""
+        You are a helpful travel assistant for {request.destination}.
+        The user has already received an itinerary. Now they are asking follow-up questions.
+        
+        Guidelines:
+        - Use DOUBLE LINE BREAKS between sections/days to paragraphs.
+        - If listing a plan, format as:
+          Day 1: [Activity]
+          
+          Day 2: [Activity]
+        - Do not use markdown bolding (like **text**). Use Capital Letters for emphasis if needed.
+        - Be concise, friendly, and helpful.
+        """
+        
+        user_prompt = f"User asks: {request.message}"
+        
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+        )
+        
+        return {"response": response.choices[0].message.content}
+
+    except Exception as e:
+        print(f"Chat Error: {e}")
+        return {"response": "Sorry, I couldn't process that right now."}
 
 if __name__ == "__main__":
     import uvicorn
