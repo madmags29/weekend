@@ -61,7 +61,8 @@ export default function Home() {
         user_location: coords ? `${coords.latitude},${coords.longitude}` : undefined
       };
 
-      const res = await fetch("http://localhost:8000/search", {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${API_URL}/search`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -79,7 +80,8 @@ export default function Home() {
   const handlePlanTrip = async (id: number, name: string) => {
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:8000/plan", {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${API_URL}/plan`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
