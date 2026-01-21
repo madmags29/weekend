@@ -27,7 +27,7 @@ export function BookingForm({ destination, estimatedCost }: BookingFormProps) {
                 <h2 className="text-3xl font-bold text-white mb-2">Booking Confirmed!</h2>
                 <p className="text-slate-400 max-w-md">
                     Your trip to <span className="text-primary font-semibold">{destination}</span> has been booked.
-                    We've sent a confirmation email with all details.
+                    We&apos;ve sent a confirmation email with all details.
                 </p>
                 <div className="mt-8 p-4 bg-white/5 rounded-xl border border-white/10">
                     <p className="text-sm text-slate-500 uppercase tracking-wider mb-1">Total Estimated Cost</p>
@@ -40,7 +40,7 @@ export function BookingForm({ destination, estimatedCost }: BookingFormProps) {
     return (
         <div className="h-full flex flex-col p-8 bg-black/40 backdrop-blur-xl border-l border-white/10 overflow-y-auto">
             <div className="mb-8">
-                <h2 className="text-3xl font-bold text-white mb-2">Book Your Trip</h2>
+                <h3 className="text-lg font-medium text-white mb-2">You&apos;re almost there!</h3>
                 <p className="text-slate-400">Complete your details to finalize the trip to <span className="text-white font-medium">{destination}</span>.</p>
             </div>
 

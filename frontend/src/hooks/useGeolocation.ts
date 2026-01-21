@@ -20,6 +20,7 @@ export function useGeolocation() {
 
     useEffect(() => {
         if (!navigator.geolocation) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setLocation({
                 coords: null,
                 error: "Geolocation is not supported by your browser",

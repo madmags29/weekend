@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, User, Sparkles } from "lucide-react";
+import { Send, Sparkles } from "lucide-react";
 import { TripTimeline } from "./TripTimeline";
 
 interface ChatInterfaceProps {
     destination: string;
-    itineraryData: any;
+    itineraryData: any; // eslint-disable-line @typescript-eslint/no-explicit-any
     onBack: () => void;
     onToggleMap?: () => void;
 }
@@ -33,12 +33,13 @@ const Typewriter = ({ text, onComplete }: { text: string, onComplete?: () => voi
             }
         }, 15); // Speed of typing
         return () => clearInterval(timer);
-    }, [text]);
+    }, [text, onComplete]);
 
     return <span>{displayed}</span>;
 }
 
-export function ChatInterface({ destination, itineraryData, onBack }: ChatInterfaceProps) {
+
+export function ChatInterface({ destination, itineraryData, onBack, onToggleMap }: ChatInterfaceProps) {
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -98,19 +99,31 @@ export function ChatInterface({ destination, itineraryData, onBack }: ChatInterf
     return (
         <div className="flex flex-col h-full bg-slate-950/50">
             {/* Chat Header */}
-            <div className="flex items-center gap-3 p-4 border-b border-white/10 bg-black/20 backdrop-blur-sm">
-                <button onClick={onBack} className="p-2 rounded-full hover:bg-white/10 transition-colors">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400">
-                        <path d="M19 12H5" /><path d="M12 19l-7-7 7-7" />
-                    </svg>
-                </button>
-                <div>
-                    <h3 className="font-semibold text-white">Weekend AI</h3>
-                    <p className="text-xs text-emerald-400 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        Online
-                    </p>
+            <div className="flex items-center justify-between p-4 border-b border-white/10 bg-black/20 backdrop-blur-sm">
+                <div className="flex items-center gap-3">
+                    <button onClick={onBack} className="p-2 rounded-full hover:bg-white/10 transition-colors">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400">
+                            <path d="M19 12H5" /><path d="M12 19l-7-7 7-7" />
+                        </svg>
+                    </button>
+                    <div>
+                        <h3 className="font-semibold text-white">Weekend AI</h3>
+                        <p className="text-xs text-emerald-400 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            Online
+                        </p>
+                    </div>
                 </div>
+
+                {onToggleMap && (
+                    <button
+                        onClick={onToggleMap}
+                        className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full text-xs font-medium text-white transition-colors border border-white/10"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 6 9 12 15 6 21 3 21 18 15 21 9 15 3 21" /><line x1="9" y1="15" x2="9" y2="21" /></svg>
+                        View Map
+                    </button>
+                )}
             </div>
 
             {/* Chat Area */}

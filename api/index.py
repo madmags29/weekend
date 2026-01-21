@@ -153,17 +153,34 @@ async def get_suggestions(q: str):
 
 @app.post("/plan")
 async def generate_itinerary(request: PlanRequest):
+    # Fallback Mock Itinerary (used if API fails)
+    mock_itinerary = {
+        "destination": request.destination,
+        "itinerary": [
+            {
+                "day": "Day 1",
+                "activities": [
+                    {"time": "10:00 AM", "activity": f"Arrive in {request.destination} and check into hotel"},
+                    {"time": "01:00 PM", "activity": "Local cuisine lunch at a popular spot"},
+                    {"time": "03:00 PM", "activity": "Sightseeing at main local attractions"},
+                    {"time": "07:00 PM", "activity": "Sunset view and dinner"}
+                ]
+            },
+            {
+                "day": "Day 2",
+                "activities": [
+                    {"time": "09:00 AM", "activity": "Breakfast and local market visit"},
+                    {"time": "11:00 AM", "activity": "Visit nearby scenic spots or temples"},
+                    {"time": "02:00 PM", "activity": "Departure preparation"}
+                ]
+            }
+        ],
+        "estimated_cost": "₹6,000 - ₹8,000 (Estimated w/o API)",
+        "note": "This is a generated fallback itinerary as our AI service is currently busy."
+    }
+
     if not client:
-        return {
-            "destination": request.destination,
-            "itinerary": [
-                {
-                    "day": "Day 1",
-                    "activities": [{"time": "Morning", "activity": "Explore Local Area"}]
-                }
-            ],
-            "estimated_cost": "₹5,000"
-        }
+        return mock_itinerary
 
     try:
         system_prompt = """
@@ -199,21 +216,24 @@ async def generate_itinerary(request: PlanRequest):
         }}
         """
 
+        # Set a timeout for the API call to prevent long hangs (e.g., 10 seconds)
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            response_format={ "type": "json_object" }
+            response_format={ "type": "json_object" },
+            timeout=15.0 
         )
 
         content = response.choices[0].message.content
         return json.loads(content)
 
     except Exception as e:
-        print(f"OpenAI API Error: {e}")
-        return {"destination": request.destination, "itinerary": [], "error": str(e)}
+        print(f"OpenAI API Error in /plan: {e}")
+        # Return fallback instead of error message so user experience isn't broken
+        return mock_itinerary
 
 class ChatRequest(BaseModel):
     message: str
@@ -254,7 +274,7 @@ async def chat_followup(request: ChatRequest):
 
     except Exception as e:
         print(f"Chat Error: {e}")
-        return {"response": "Sorry, I couldn't process that right now."}
+        return {"response": "I'm having trouble connecting to my travel brain right now. But generally, local drivers and hotel concierges are great sources for on-the-ground info!"}
 
 if __name__ == "__main__":
     import uvicorn

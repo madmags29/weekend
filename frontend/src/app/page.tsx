@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { SearchBar } from "@/components/SearchBar";
 import { DestinationCard } from "@/components/DestinationCard";
-import { TripTimeline } from "@/components/TripTimeline";
 import { TripMap } from "@/components/TripMap";
 import { ChatInterface } from "@/components/ChatInterface";
 import { motion, AnimatePresence } from "framer-motion";
@@ -42,7 +41,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [view, setView] = useState<"search" | "results" | "plan">("search");
   const [currentQuery, setCurrentQuery] = useState("");
-  const [showMap, setShowMap] = useState(false);
+  const [activeTab, setActiveTab] = useState<"booking" | "map">("booking");
+  const [showMap, setShowMap] = useState(false); // Mobile only map toggle
 
   // Get User Location
   const { coords } = useGeolocation();
@@ -145,7 +145,7 @@ export default function Home() {
               </h1>
               <p className="text-xl text-slate-400 max-w-2xl mx-auto">
                 Your personal AI concierge for perfect weekend getaways.
-                Just tell us what you're in the mood for.
+                Just tell us what you&apos;re in the mood for.
               </p>
             </motion.div>
           )}
@@ -167,7 +167,7 @@ export default function Home() {
                 transition={{ delay: 0.2 }}
                 className="mt-12 w-full max-w-4xl overflow-x-auto pb-4 scrollbar-hide flex items-center justify-center gap-4"
               >
-                {POPULAR_DESTINATIONS.map((dest, i) => (
+                {POPULAR_DESTINATIONS.map((dest) => (
                   <button
                     key={dest.name}
                     onClick={() => handleSearch(dest.name)}
@@ -222,12 +222,46 @@ export default function Home() {
                 />
               </div>
 
-              {/* Right Panel: Booking Form */}
-              <div className="hidden md:block h-full relative z-10">
-                <BookingForm
-                  destination={selectedItinerary.destination}
-                  estimatedCost={selectedItinerary.estimated_cost}
-                />
+              {/* Right Panel: Tabs (Desktop) */}
+              <div className="hidden md:flex h-full flex-col relative z-10 bg-slate-950/50 border-l border-white/10">
+                {/* Tab Switcher */}
+                <div className="flex items-center p-2 gap-2 border-b border-white/10 bg-black/20">
+                  <button
+                    onClick={() => setActiveTab("booking")}
+                    className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${activeTab === "booking"
+                      ? "bg-white/10 text-white shadow-sm"
+                      : "text-slate-400 hover:text-white hover:bg-white/5"
+                      }`}
+                  >
+                    Booking Code
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("map")}
+                    className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${activeTab === "map"
+                      ? "bg-white/10 text-white shadow-sm"
+                      : "text-slate-400 hover:text-white hover:bg-white/5"
+                      }`}
+                  >
+                    Map View
+                  </button>
+                </div>
+
+                {/* Tab Content */}
+                <div className="flex-1 overflow-hidden relative">
+                  {activeTab === "booking" ? (
+                    <BookingForm
+                      destination={selectedItinerary.destination}
+                      estimatedCost={selectedItinerary.estimated_cost}
+                    />
+                  ) : (
+                    <div className="absolute inset-0">
+                      <TripMap
+                        destination={selectedItinerary.destination}
+                        userLocation={coords ? [coords.latitude, coords.longitude] : undefined}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Map Modal (Global) */}

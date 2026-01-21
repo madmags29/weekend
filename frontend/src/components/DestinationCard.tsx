@@ -1,8 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { MapPin, Tag, ArrowRight } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { MapPin, ArrowRight } from "lucide-react";
 
 interface DestinationCardProps {
     id: number;

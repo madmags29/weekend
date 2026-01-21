@@ -17,6 +17,7 @@ const icon = L.icon({
 
 // Hack to fix missing default icons if we don't have local assets yet
 // We'll use CDN for standard markers as fallback if local doesn't exist plan
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
     iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
@@ -31,7 +32,7 @@ interface LeafletMapProps {
 
 function RoutingMachine({ userLocation, destinationCoords }: { userLocation: [number, number], destinationCoords: [number, number] }) {
     const map = useMap();
-    const routingControlRef = useRef<any>(null);
+    const routingControlRef = useRef<L.Routing.Control | null>(null);
 
     useEffect(() => {
         if (!map) return;
@@ -40,7 +41,7 @@ function RoutingMachine({ userLocation, destinationCoords }: { userLocation: [nu
         if (routingControlRef.current) {
             try {
                 map.removeControl(routingControlRef.current);
-            } catch (e) { console.warn("Cleanup error", e); }
+            } catch (_e) { console.warn("Cleanup error", _e); }
             routingControlRef.current = null;
         }
 
@@ -58,8 +59,8 @@ function RoutingMachine({ userLocation, destinationCoords }: { userLocation: [nu
         try {
             routingControl.addTo(map);
             routingControlRef.current = routingControl;
-        } catch (e) {
-            console.error("Error adding routing control:", e);
+        } catch (_e) {
+            console.error("Error adding routing control:", _e);
         }
 
         return () => {
@@ -69,10 +70,10 @@ function RoutingMachine({ userLocation, destinationCoords }: { userLocation: [nu
                     if (map.getContainer()) {
                         map.removeControl(routingControlRef.current);
                     }
-                } catch (e) {
+                } catch (_e) {
                     // Swallow the "removeLayer of null" error which happens if map is already destroyed
                 }
-                routingControlRef.current = null;
+                routingControlRef.current = null; // Ensure ref is cleared on unmount
             }
         };
     }, [map, userLocation, destinationCoords]);
