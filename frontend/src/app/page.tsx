@@ -61,7 +61,7 @@ export default function Home() {
         user_location: coords ? `${coords.latitude},${coords.longitude}` : undefined
       };
 
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === "production" ? "/api" : "http://localhost:8000");
       const res = await fetch(`${API_URL}/search`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -80,7 +80,7 @@ export default function Home() {
   const handlePlanTrip = async (id: number, name: string) => {
     setLoading(true);
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === "production" ? "/api" : "http://localhost:8000");
       const res = await fetch(`${API_URL}/plan`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
